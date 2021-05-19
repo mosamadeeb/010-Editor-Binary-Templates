@@ -1,0 +1,270 @@
+//------------------------------------------------
+//--- 010 Editor v10.0.2 Binary Template
+//
+//      File: xfbin.bt
+//   Authors: SutandoTsukai181
+//   Version: 1.0
+//   Purpose: Parse CC2 Xfbin files
+//  Category: 
+// File Mask: *.xfbin
+//  ID Bytes: 4E 55 43 43
+//   History: 
+//------------------------------------------------
+
+#include "/../include.h";
+#include "nucc.h";
+
+local u32 xfbinColor = SetRandomBackColor();
+local u32 chunkTableColor = SetRandomBackColor();
+local u32 chunkTableChunkTypeColor = SetRandomBackColor();
+local u32 chunkTableFileColor = SetRandomBackColor();
+local u32 chunkTableChunkColor = SetRandomBackColor();
+local u32 chunkMapColor = SetRandomBackColor();
+local u32 extraIndicesColor = SetRandomBackColor();
+local u32 chunkMapIndicesColor = SetRandomBackColor();
+local u32 chunkColor = SetRandomBackColor();
+
+typedef struct
+{
+    SetBackColor( xfbinColor );
+
+    char Magic[4];
+    Assert( Magic == "NUCC" );
+
+    u32 FileId;
+    u32 Padding[2] <hidden=true>;
+    Assert( Padding[0] == 0 && Padding[1] == 0 );
+
+    u32 ChunkTableSize; // Without ExtraIndices size
+    u32 MinPageSize; // Unsure how to describe it: it's either 3 or 3 + NuccPage.ExtraIndicesSize
+    u16 FileId1; // == FileId
+    u16 Field1A;
+
+    struct TChunkTable ChunkTable;
+
+    local u32 currentPageStart, currentExtraIndicesStart = 0;
+    struct
+    {
+        while ( !FEof() )
+        {
+            struct TPage Page( currentPageStart, currentExtraIndicesStart );
+            currentPageStart += Page.pageSize;
+            currentExtraIndicesStart += Page.extraIndicesSize;
+        }
+    } Pages;
+
+} TXfbin <optimize=false>;
+
+typedef struct
+{
+    SetBackColor( chunkTableColor );
+
+    u32 ChunkTypeCount;
+    u32 ChunkTypeSize;
+
+    u32 FilePathCount;
+    u32 FilePathSize;
+
+    u32 ChunkNameCount;
+    u32 ChunkNameSize;
+
+    u32 ChunkMapCount;
+    u32 ChunkMapSize;
+
+    u32 ChunkMapIndicesCount; // Size is always count * 4
+    u32 ExtraIndicesCount; // Size is always count * 2 * 4
+
+    SetBackColor( chunkTableChunkTypeColor );
+    struct { struct TString ChunkTypes[ChunkTypeCount]; } ChunkTypes;
+
+    SetBackColor( chunkTableFileColor );
+    struct { struct TString FilePaths[FilePathCount]; } FilePaths;
+
+    SetBackColor( chunkTableChunkColor );
+    struct { struct TString ChunkNames[ChunkNameCount]; } ChunkNames;
+
+    // Align after strings
+    if ( ChunkTypeCount || FilePathCount || ChunkNameCount )
+    {
+        FSeek( FTell() - 1 );
+        FSkip( 4 - ( FTell() % 4 ) );
+    }
+
+    Assert( ChunkMapSize % ChunkMapCount == 0 );
+    Assert( ChunkMapSize / ChunkMapCount / 4 == 3 );
+
+    SetBackColor( chunkMapColor );
+    struct TChunkMap ChunkMaps[ChunkMapCount];
+
+    SetBackColor( extraIndicesColor );
+    struct TExtraMapping ExtraMappings[ExtraIndicesCount];
+
+    SetBackColor( chunkMapIndicesColor );
+    u32 ChunkMapIndices[ChunkMapIndicesCount];
+
+} TChunkTable <optimize=false>;
+
+typedef struct
+{
+    SetBackColor( chunkMapColor );
+
+    u32 ChunkTypeIndex <read=ReadChunkTypeIndex>;
+    u32 FilePathIndex <read=ReadFilePathIndex>;
+    u32 ChunkNameIndex <read=ReadChunkNameIndex>;
+} TChunkMap <read=ReadTChunkMapName>;
+
+typedef struct
+{
+    u32 ChunkNameIndex;
+    u32 ChunkMapIndex;
+} TExtraMapping <read=ReadTExtraMapping>;
+
+typedef struct( u32 currentPageStart, u32 currentExtraIndicesStart )
+{
+    local u32 chunkCount = 0;
+    local u32 pageStart = currentPageStart;
+
+    do
+    {
+        struct TChunk Chunk;
+        ++chunkCount;
+    } while ( ReadChunkTypeIndex( Chunk.ChunkMap.ChunkTypeIndex ) != "nuccChunkPage" );
+
+    local u32 pageSize = Chunk.NuccPage.PageSize;
+    local u32 extraIndicesSize = Chunk.NuccPage.ExtraIndicesSize;
+
+    if ( extraIndicesSize )
+    {
+        FPush();
+        {
+            SetBackColor( extraIndicesColor );
+            FSeekRel(startof(Xfbin.ChunkTable.ExtraMappings[currentExtraIndicesStart]));
+            struct TExtraMapping ExtraMappings[extraIndicesSize];
+        }
+        FPop();
+    }
+} TPage <optimize=false, read=ReadTPage>;
+
+typedef struct
+{
+    SetBackColor( chunkColor );
+
+    u32 Size;
+    u32 ChunkMapIndex;
+    u16 FileId;
+    u16 Field0A;
+
+    // Not really necessary, but vanilla files seem to have it consistently the same
+    //Assert( FileId == Xfbin.FileId );
+
+    FPush();
+    {
+        FSeekRel( startof(Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( ChunkMapIndex, parentof(this).pageStart )]) );
+        struct TChunkMap ChunkMap <read=ReadTChunkMapType>; // Redefine the struct because we have no other way of accessing it from here
+    }
+    FPop();
+
+    SetBackColor( chunkColor );
+
+    switch ( ReadChunkTypeIndex( ChunkMap.ChunkTypeIndex ) )
+    {
+        case "nuccChunkPage":
+            struct TNuccPage NuccPage;
+            break;
+        case "nuccChunkTexture":
+            struct TNuccTexture NuccTexture;
+            break;
+        case "nuccChunkMaterial":
+            struct TNuccMaterial NuccMaterial;
+            break;
+        default:
+            u8 Data[Size];
+            break;
+    }
+} TChunk <optimize=false, read=ReadTChunk>;
+
+typedef struct
+{
+    string Data;
+} TString <optimize=false, read=ReadTString>;
+
+u32 GetChunkMapIndex( u32 index, u32 pageStart )
+{
+    return Xfbin.ChunkTable.ChunkMapIndices[pageStart + index];
+}
+
+string ReadChunkTypeIndex( u32& value )
+{
+    return Xfbin.ChunkTable.ChunkTypes.ChunkTypes[value].Data;
+}
+
+string ReadFilePathIndex( u32& value )
+{
+    return Xfbin.ChunkTable.FilePaths.FilePaths[value].Data;
+}
+
+string ReadChunkNameIndex( u32& value )
+{
+    return Xfbin.ChunkTable.ChunkNames.ChunkNames[value].Data;
+}
+
+string ReadTChunkMapType( struct TChunkMap& value )
+{
+    return ReadChunkTypeIndex(value.ChunkTypeIndex);
+}
+
+string ReadTChunkMapName( struct TChunkMap& value )
+{
+    return ReadChunkNameIndex(value.ChunkNameIndex);
+}
+
+string ReadTExtraMapping( struct TExtraMapping& value )
+{
+    local string str = "";
+    local string name = ReadChunkNameIndex( value.ChunkNameIndex );
+    local string type = ReadTChunkMapName( Xfbin.ChunkTable.ChunkMaps[value.ChunkMapIndex] );
+
+    if ( name != "" ) SPrintf( str, "%s (%s)", name, type );
+    return str;
+}
+
+string ReadTPage( struct TPage& value )
+{
+    local u32 i = 0;
+    local string currentName;
+
+    while ( i < value.chunkCount )
+    {
+        currentName = ReadTChunk(value.Chunk[i]);
+        if ( currentName != "" )
+        {
+            if ( i + 1 < value.chunkCount && Strncmp( ReadTChunk(value.Chunk[i + 1]), "Page", 4 ) == 0 )
+            {
+                // Only return the chunk's name if it's the only (named) chunk in the page
+                return ReadTChunk( value.Chunk[i] );
+            }
+
+            return "";
+        }
+        ++i;
+    }
+
+    return "";
+}
+
+string ReadTChunk( struct TChunk& value )
+{
+    local string str = "";
+    local string name = ReadTChunkMapName( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
+    local string type = ReadTChunkMapType( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
+
+    if ( name != "" ) SPrintf( str, "%s (%s)", name, type );
+    return str;
+}
+
+string ReadTString( struct TString& value )
+{
+    return value.Data;
+}
+
+TXfbin Xfbin;
