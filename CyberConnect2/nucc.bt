@@ -3,12 +3,14 @@
 //
 //      File: nucc.bt
 //   Authors: SutandoTsukai181
-//   Version: 1.0
+//   Version: 1.1
 //   Purpose: Contains structs for parsing nuccChunks inside Xfbin files
 //  Category: 
 // File Mask: 
 //  ID Bytes: 
 //   History: 
+//   1.0 - Initial release
+//   1.1 - Added nuccChunkCoord struct
 //------------------------------------------------
 
 #include "/../include.h";

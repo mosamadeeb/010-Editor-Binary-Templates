@@ -9,10 +9,11 @@
 // File Mask: *.xfbin
 //  ID Bytes: 4E 55 43 43
 //   History: 
+//   1.0 - Initial release
 //------------------------------------------------
 
 #include "/../include.h";
-#include "nucc.h";
+#include "nucc.bt";
 
 local u32 xfbinColor = SetRandomBackColor();
 local u32 chunkTableColor = SetRandomBackColor();
