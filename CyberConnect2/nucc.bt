@@ -1,7 +1,7 @@
 //------------------------------------------------
 //--- 010 Editor v10.0.2 Binary Template
 //
-//      File: nucc.h
+//      File: nucc.bt
 //   Authors: SutandoTsukai181
 //   Version: 1.0
 //   Purpose: Contains structs for parsing nuccChunks inside Xfbin files
