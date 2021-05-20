@@ -100,8 +100,7 @@ typedef struct
     f32 ScaleX;
     f32 ScaleY;
     f32 ScaleZ;
-    f32 Unk;
+    f32 UnkFloat;
 
-    u16 Unused <hidden=true>;
-    Assert( Unused == 0 );
+    u16 UnkShort;
 } TNuccCoord;
