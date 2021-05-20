@@ -84,3 +84,22 @@ typedef struct
         } TextureGroup;
     }
 } TNuccMaterial <optimize=false>;
+
+typedef struct
+{
+    f32 LocX;
+    f32 LocY;
+    f32 LocZ;
+
+    f32 RotX;
+    f32 RotY;
+    f32 RotZ;
+
+    f32 ScaleX;
+    f32 ScaleY;
+    f32 ScaleZ;
+    f32 Unk;
+
+    u16 Unused <hidden=true>;
+    Assert( Unused == 0 );
+} TNuccCoord;

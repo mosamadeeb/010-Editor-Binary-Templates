@@ -177,6 +177,9 @@ typedef struct
         case "nuccChunkMaterial":
             struct TNuccMaterial NuccMaterial;
             break;
+        case "nuccChunkCoord":
+            struct TNuccCoord NuccCoord;
+            break;
         default:
             u8 Data[Size];
             break;
