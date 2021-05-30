@@ -194,11 +194,11 @@ typedef struct
         }
     } CoordNodeIndicesChunks;
 
-    u16 ModelGroupCount;
-    u8  ModelGroupFlags[2]; // Not always 0
+    u16 ModelCount;
+    u8  ModelFlags[2]; // Not always 0
 
     u32 Padding <hidden=true>; Assert( Padding == 0 );
-    u32 ModelGroupIndices[ModelGroupCount];
+    u32 ModelIndices[ModelCount];
 
     do
     {
