@@ -1,0 +1,98 @@
+//------------------------------------------------
+//--- 010 Editor v10.0.2 Binary Template
+//
+//      File: nut.bt
+//   Authors: SutandoTsukai181 (Based on Smash Forge implementation)
+//   Version: 1.0
+//   Purpose: Parse Bandai Namco NUT texture files
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//   1.0 - Initial release
+//------------------------------------------------
+
+#define NUT
+
+#include "/../include.h";
+
+local u32 nutColor = SetRandomBackColor();
+local u32 nutTexColor = SetRandomBackColor();
+
+typedef struct
+{
+    SetBackColor(nutColor);
+
+    char Magic[4]; Assert( Magic == "NTP3" );
+    u16 Version;
+
+    u16 Count;
+    u32 Padding[2] <hidden=true>;
+
+    struct TNutTexture NutTexture[Count];
+} TNut <optimize=false>;
+
+typedef struct
+{
+    SetBackColor(nutTexColor);
+
+    local u32 startPosition = FTell();
+
+    u32 TotalSize;
+    u32 Field04 <hidden=true>;
+
+    u32 DataSize;
+    u16 HeaderSize;
+    u16 Field0E <hidden=true>;
+
+    u8 Field10 <hidden=true>;
+    u8 MipmapCount;
+    u8 Field12 <hidden=true>;
+    u8 PixelFormat;
+
+    u16 Width;
+    u16 Height;
+
+    u32 Field18 <hidden=true>;
+    u32 Caps2 <hidden=true>;
+
+    local bool isCubemap = false;
+    if ( Caps2 & 0x200 == 0x200 )
+    {
+        isCubemap = true;
+    }
+
+    // This is for versions < 0x0200 only
+    u32 Padding[4] <hidden=true>;
+
+    if ( isCubemap )
+    {
+        u32 CubemapSize1;
+        u32 CubemapSize2;
+        u32 Field38[2];
+    }
+
+    if ( MipmapCount > 1 ) 
+    {
+        u32 MipmapSizes[MipmapCount];
+    
+        if ( ( FTell() - startPosition ) % 0x10 )
+        {
+            FSkip( 0x10 - ( ( FTell() - startPosition ) % 0x10 ) );
+        }
+    }
+
+    FSkip( 0x10 );
+
+    char GIDX[4];
+    FSkip( 4 );
+
+    u32 HashId;
+    FSkip( 4 );
+
+    u8 TextureData[DataSize];
+} TNutTexture <optimize=false>;
+
+#ifndef XFBIN
+    TNut Nut;
+#endif

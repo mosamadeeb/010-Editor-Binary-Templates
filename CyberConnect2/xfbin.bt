@@ -12,8 +12,10 @@
 //   1.0 - Initial release
 //------------------------------------------------
 
-#include "/../include.h";
-#include "nucc.bt";
+#define XFBIN
+
+#include "/../include.h"
+#include "nucc.bt"
 
 local u32 xfbinColor = SetRandomBackColor();
 local u32 chunkTableColor = SetRandomBackColor();
