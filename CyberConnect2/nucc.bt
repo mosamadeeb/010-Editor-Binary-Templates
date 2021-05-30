@@ -3,7 +3,7 @@
 //
 //      File: nucc.bt
 //   Authors: SutandoTsukai181
-//   Version: 1.1
+//   Version: 1.2
 //   Purpose: Contains structs for parsing nuccChunks inside Xfbin files
 //  Category: 
 // File Mask: 
@@ -11,9 +11,10 @@
 //   History: 
 //   1.0 - Initial release
 //   1.1 - Added nuccChunkCoord struct
+//   1.2 - Added nuccChunkClump and nuccChunkModel structs
 //------------------------------------------------
 
-#include "/../include.h";
+#include "/../include.h"
 
 typedef struct
 {
@@ -31,11 +32,51 @@ typedef struct
     u32 Size;
 
     #ifdef NUT
-        struct TNut Nut;
+        FPushBase();
+        {
+            TNut Nut;
+        }
+        FPopBase();
     #else
         u8 Data[Size];
     #endif
 } TNuccTexture;
+
+typedef struct
+{
+    u16 Field00;
+    u16 Field02;
+
+    u8  Flags0;
+    u8  Flags1;
+    u8  Flags2;
+    u8  Flags3;
+
+    u32 Field08; // 0
+    u32 Field0C; // 2
+    u32 Field10; // 0
+    u32 Field14; // bone count?
+
+    u32 Size;
+
+    if ( Flags1 & 0x04 )
+    {
+        f32 Floats[6];
+    }
+
+    #ifdef NUD
+        FPushBase();
+        {
+            struct TNud Nud;
+        }
+        FPopBase();
+    #else
+        u8 Data[Size];
+    #endif
+
+    u16 PolySetCount;
+    u32 PolySetValues[PolySetCount];
+} TNuccModel;
 
 typedef struct
 {
@@ -104,3 +145,91 @@ typedef struct
 
     u16 UnkShort;
 } TNuccCoord;
+
+typedef struct
+{
+    u32 Field00; // Not always 0
+
+    u16 CoordCount;
+    u8  CoordFlags[2];
+
+    s16 CoordNodeParents[CoordCount];
+    u32 CoordNodeIndices[CoordCount];
+
+    // This only lists the parents, not the node whose parent is listed
+    local int i;
+    struct
+    {
+        for ( i = 0; i < CoordCount; i++ )
+        {
+            if ( CoordNodeParents[i] < 0 )
+                continue;
+
+            FPush();
+            {
+                FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
+                    CoordNodeIndices[CoordNodeParents[i]],
+                    parentof(parentof(parentof(this))).pageStart
+                )] ) );
+                struct TChunkMap ChunkMap;
+            }
+            FPop();
+        }
+    } CoordNodeParentsChunks;
+
+    struct
+    {
+        for ( i = 0; i < CoordCount; i++ )
+        {
+            FPush();
+            {
+                FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
+                    CoordNodeIndices[i],
+                    parentof(parentof(parentof(this))).pageStart
+                )] ) );
+                struct TChunkMap ChunkMap;
+            }
+            FPop();
+        }
+    } CoordNodeIndicesChunks;
+
+    u16 ModelGroupCount;
+    u8  ModelGroupFlags[2]; // Not always 0
+
+    u32 Padding <hidden=true>; Assert( Padding == 0 );
+    u32 ModelGroupIndices[ModelGroupCount];
+
+    do
+    {
+        struct TNuccClumpModelGroup ModelGroup;
+    } while ( ModelGroup.Count != -1 );
+} TNuccClump;
+
+typedef struct
+{
+    s16 Count;
+
+    if ( Count != -1 )
+    {
+        u8 Flags[2];
+
+        s8  Unk[4];
+        u32 Indices[Count];
+
+        struct
+        {
+            for ( i = 0; i < Count; i++ )
+            {
+                FPush();
+                {
+                    FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
+                        Indices[i],
+                        parentof(parentof(parentof(parentof(this)))).pageStart
+                    )] ) );
+                    struct TChunkMap ChunkMap;
+                }
+                FPop();
+            }
+        } ModelGroupChunks;
+    }
+} TNuccClumpModelGroup;
