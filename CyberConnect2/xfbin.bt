@@ -183,6 +183,9 @@ typedef struct
         case "nuccChunkCoord":
             struct TNuccCoord NuccCoord;
             break;
+        case "nuccChunkClump":
+            struct TNuccClump NuccClump;
+            break;
         case "nuccChunkMaterial":
             struct TNuccMaterial NuccMaterial;
             break;
