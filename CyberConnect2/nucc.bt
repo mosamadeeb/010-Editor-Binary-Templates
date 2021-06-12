@@ -131,6 +131,48 @@ typedef struct
 
 typedef struct
 {
+    u16 Sec1Count;
+    u16 Sec2Count;
+
+    u32 ClumpChunkIndex;
+
+    local int i, j, somethingCount = 0;
+    for ( i = 0; i < Sec1Count; i++ )
+    {
+        struct
+        {
+            f32 Values[4];
+            u16 CoordIndex;
+            u16 SomethingCount;
+            somethingCount += SomethingCount;
+        } Sec1;
+    }
+
+    for ( i = 0; i < Sec2Count; i++ )
+    {
+        struct
+        {
+            f32 Values[6];
+
+            u16 CoordIndex;
+            u16 Count;
+
+            s16 Unk;
+            u16 Padding2;
+
+            for ( j = 0; j < Count; j++ )
+            {
+                u16 Count2;
+                u16 Values2[Count2];
+            }
+        } Sec2;
+    }
+
+    u16 Something[somethingCount];
+} TNuccDynamics <optimize=false>;
+
+typedef struct
+{
     f32 LocX;
     f32 LocY;
     f32 LocZ;
@@ -203,8 +245,8 @@ typedef struct
     do
     {
         struct TNuccClumpModelGroup ModelGroup;
-    } while ( ModelGroup.Count != -1 );
-} TNuccClump;
+    } while ( ModelGroup.Count != -1 && (FTell() - startof(this)) < parentof(this).Size );
+} TNuccClump <optimize=false>;
 
 typedef struct
 {
