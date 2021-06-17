@@ -94,6 +94,7 @@ typedef struct
         if ( FloatFormat & 0x04 ) f32 Bit05Float[4];
         if ( FloatFormat & 0x02 ) f32 Bit06Float[4];
         if ( FloatFormat & 0x01 ) f32 Bit07Float[4];
+        if ( FloatFormat & 0x08 ) f32 Bit04Float[4];
     } Floats;
 
     local u32 i, j;
