@@ -57,7 +57,7 @@ typedef struct
     u32 Caps2 <hidden=true>;
 
     local bool isCubemap = false;
-    if ( Caps2 & 0x200 == 0x200 )
+    if ( (Caps2 & 0x200) == 0x200 )
     {
         isCubemap = true;
     }
