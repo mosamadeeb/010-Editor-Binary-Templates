@@ -247,16 +247,20 @@ string ReadTPage( struct TPage& value )
 
     while ( i < value.chunkCount )
     {
-        currentName = ReadTChunk(value.Chunk[i]);
+        currentName = ReadTChunk( value.Chunk[i] );
         if ( currentName != "" )
         {
-            if ( i + 1 < value.chunkCount && Strncmp( ReadTChunk(value.Chunk[i + 1]), "Page", 4 ) == 0 )
+            if ( ReadTChunkMapType( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.Chunk[i].ChunkMapIndex, parentof(value.Chunk[i]).pageStart )] ) == "nuccChunkClump" )
             {
-                // Only return the chunk's name if it's the only (named) chunk in the page
-                return ReadTChunk( value.Chunk[i] );
+                // Return the chunk's name if it's a clump
+                return currentName;
             }
 
-            return "";
+            if ( i + 1 < value.chunkCount && Strncmp( ReadTChunk(value.Chunk[i + 1]), "Page", 4 ) == 0 )
+            {
+                // Return the chunk's name if it's the last (named) chunk in the page
+                return currentName;
+            }
         }
         ++i;
     }
