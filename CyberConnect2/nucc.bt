@@ -253,7 +253,7 @@ typedef struct
 {
     s16 Count;
 
-    if ( Count != -1 )
+    if ( Count != -1 && (FTell() - startof(parentof(this))) < parentof(parentof(this)).Size )
     {
         u8 Flags[2];
 
