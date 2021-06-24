@@ -34,6 +34,8 @@ typedef struct
     char Magic[4];
     Assert( Magic == "NUCC" );
 
+    BigEndian();
+
     u32 FileId;
     u32 Padding[2] <hidden=true>;
     Assert( Padding[0] == 0 && Padding[1] == 0 );
