@@ -132,6 +132,7 @@ typedef struct( u32 currentPageStart, u32 currentExtraIndicesStart )
     do
     {
         struct TChunk Chunk;
+        Assert( sizeof(Chunk) == Chunk.Size + 0xC );
         ++chunkCount;
     } while ( ReadChunkTypeIndex( Chunk.ChunkMap.ChunkTypeIndex ) != "nuccChunkPage" );
 
