@@ -204,15 +204,14 @@ typedef struct
     local int i;
     struct
     {
+        local u32 currentIndex;
         for ( i = 0; i < CoordCount; i++ )
         {
-            if ( CoordNodeParents[i] < 0 )
-                continue;
-
             FPush();
             {
+                currentIndex = CoordNodeParents[i] < 0 ? 0 : CoordNodeIndices[CoordNodeParents[i]];
                 FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
-                    CoordNodeIndices[CoordNodeParents[i]],
+                    currentIndex,
                     parentof(parentof(parentof(this))).pageStart
                 )] ) );
                 struct TChunkMap ChunkMap;
@@ -243,6 +242,22 @@ typedef struct
     u32 Padding <hidden=true>; Assert( Padding == 0 );
     u32 ModelIndices[ModelCount];
 
+    struct
+    {
+        for ( i = 0; i < ModelCount; i++ )
+        {
+            FPush();
+            {
+                FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
+                    ModelIndices[i],
+                    parentof(parentof(parentof(this))).pageStart
+                )] ) );
+                struct TChunkMap ChunkMap;
+            }
+            FPop();
+        }
+    } ModelIndicesChunks;
+
     do
     {
         struct TNuccClumpModelGroup ModelGroup;
@@ -262,12 +277,17 @@ typedef struct
 
         struct
         {
+            local u32 currentIndex;
             for ( i = 0; i < Count; i++ )
             {
                 FPush();
                 {
+                    currentIndex = Indices[i];
+                    if ( currentIndex == -1 )
+                        currentIndex = 0;
+
                     FSeekRel( startof( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex(
-                        Indices[i],
+                        currentIndex,
                         parentof(parentof(parentof(parentof(this)))).pageStart
                     )] ) );
                     struct TChunkMap ChunkMap;
