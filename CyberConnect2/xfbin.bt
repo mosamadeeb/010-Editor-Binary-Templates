@@ -116,7 +116,10 @@ typedef struct
     u32 ChunkTypeIndex <read=ReadChunkTypeIndex>;
     u32 FilePathIndex <read=ReadFilePathIndex>;
     u32 ChunkNameIndex <read=ReadChunkNameIndex>;
-} TChunkMap <read=ReadTChunkMapName>;
+
+    local string chunkReadString = "";
+    SPrintf( chunkReadString, "%s (%s)", ReadChunkNameIndex(ChunkNameIndex), ReadChunkTypeIndex(ChunkTypeIndex) );
+} TChunkMap <read=ReadTChunkMap>;
 
 typedef struct
 {
@@ -157,11 +160,8 @@ typedef struct
 
     u32 Size;
     u32 ChunkMapIndex;
-    u16 FileId;
+    u16 Version;
     u16 Field0A;
-
-    // Not really necessary, but vanilla files seem to have it consistently the same
-    //Assert( FileId == Xfbin.FileId );
 
     FPush();
     {
@@ -172,10 +172,15 @@ typedef struct
 
     SetBackColor( chunkColor );
 
+    // Completely avoid chunks with an unsupported version for now
     switch ( ReadChunkTypeIndex( ChunkMap.ChunkTypeIndex ) )
     {
         case "nuccChunkPage":
             struct TNuccPage NuccPage;
+            break;
+        case "nuccChunkAnm":
+            struct TNuccAnm NuccAnm;
+            u8 Data[Size - (exists(NuccAnm) ? sizeof(NuccAnm) : 0)];
             break;
         case "nuccChunkTexture":
             struct TNuccTexture NuccTexture;
@@ -196,6 +201,8 @@ typedef struct
             u8 Data[Size];
             break;
     }
+
+    local string readString = "";
 } TChunk <optimize=false, read=ReadTChunk>;
 
 typedef struct
@@ -233,13 +240,22 @@ string ReadTChunkMapName( struct TChunkMap& value )
     return ReadChunkNameIndex(value.ChunkNameIndex);
 }
 
+string ReadTChunkMap( struct TChunkMap& value )
+{
+    local string str = "";
+    local string name = ReadTChunkMapName(value);
+    local string type = ReadTChunkMapType(value);
+
+    if ( name != "" ) SPrintf( str, "%s (%s)", name, type );
+    return str;
+}
+
 string ReadTExtraMapping( struct TExtraMapping& value )
 {
     local string str = "";
     local string name = ReadChunkNameIndex( value.ChunkNameIndex );
-    local string type = ReadTChunkMapName( Xfbin.ChunkTable.ChunkMaps[value.ChunkMapIndex] );
 
-    if ( name != "" ) SPrintf( str, "%s (%s)", name, type );
+    if ( name != "" ) SPrintf( str, "%s [%s]", name, ReadTChunkMap(Xfbin.ChunkTable.ChunkMaps[value.ChunkMapIndex]) );
     return str;
 }
 
@@ -273,12 +289,15 @@ string ReadTPage( struct TPage& value )
 
 string ReadTChunk( struct TChunk& value )
 {
-    local string str = "";
-    local string name = ReadTChunkMapName( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
-    local string type = ReadTChunkMapType( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
+    if ( value.readString == "" )
+    {
+        local string name = ReadTChunkMapName( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
+        local string type = ReadTChunkMapType( Xfbin.ChunkTable.ChunkMaps[GetChunkMapIndex( value.ChunkMapIndex, parentof(value).pageStart )] );
 
-    if ( name != "" ) SPrintf( str, "%s (%s)", name, type );
-    return str;
+        if ( name != "" ) SPrintf( value.readString, "%s (%s)", name, type );
+    }
+
+    return value.readString;
 }
 
 string ReadTString( struct TString& value )

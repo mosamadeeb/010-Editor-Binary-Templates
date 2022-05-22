@@ -15,6 +15,7 @@
 //------------------------------------------------
 
 #include "/../include.h"
+#include "nuccChunkAnm.bt"
 #include "nut.bt"
 
 typedef struct
@@ -137,15 +138,19 @@ typedef struct
 
     u32 ClumpChunkIndex;
 
-    local int i, j, somethingCount = 0;
+    local int i, j, childrenCount = 0;
     for ( i = 0; i < Sec1Count; i++ )
     {
         struct
         {
-            f32 Values[4];
+            f32 Bounce;
+            f32 Speed;
+            f32 Gravity;
+            f32 Influence;
+
             u16 CoordIndex;
-            u16 SomethingCount;
-            somethingCount += SomethingCount;
+            u16 ChildCount;
+            childrenCount += ChildCount;
         } Sec1;
     }
 
@@ -169,7 +174,7 @@ typedef struct
         } Sec2;
     }
 
-    u16 Something[somethingCount];
+    u16 Something[childrenCount];
 } TNuccDynamics <optimize=false>;
 
 typedef struct
@@ -187,15 +192,32 @@ typedef struct
     f32 ScaleZ;
     f32 UnkFloat;
 
-    u16 UnkShort;
+    if ( parentof(this).Version >= 0x68 )
+    {
+        u16 UnkShort;
+    }
 } TNuccCoord;
 
 typedef struct
 {
+
+// Please ignore the incorrect indentation here in favor of having a cleaner git diff
+if ( parentof(this).Version != 0x79 && parentof(this).Version != 0x7A )
+{
+    u8 Data[parentof(this).Size];
+}
+else
+{
+
     u32 Field00; // Not always 0
 
     u16 CoordCount;
     u8  CoordFlags[2];
+
+    if ( Field00 == 2 )
+    {
+        f16 UnkCoords[14];
+    }
 
     s16 CoordNodeParents[CoordCount];
     u32 CoordNodeIndices[CoordCount];
@@ -262,6 +284,8 @@ typedef struct
     {
         struct TNuccClumpModelGroup ModelGroup;
     } while ( ModelGroup.Count != -1 && (FTell() - startof(this)) < parentof(this).Size );
+
+}
 } TNuccClump <optimize=false>;
 
 typedef struct

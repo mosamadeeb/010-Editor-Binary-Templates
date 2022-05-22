@@ -1,0 +1,235 @@
+//------------------------------------------------
+//--- 010 Editor v10.0.2 Binary Template
+//
+//      File: nuccChunkAnm.bt
+//   Authors: SutandoTsukai181
+//   Version: 1.0
+//   Purpose: Contains structs for parsing nuccChunks inside Xfbin files
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//   1.0 - Initial release
+//------------------------------------------------
+
+#include "/../include.h";
+
+typedef struct
+{
+    if (parentof(this).Version != 0x68 && parentof(this).Version != 0x79)
+    {
+        u8 Data[parentof(this).Size];
+    }
+    else
+    {
+
+    u32 AnmLength;
+    u32 FrameSize; //Assert( FrameSize == 0x64 );  // Each frame is 100 units
+
+    u16 EntryCount;
+    u16 Field0A;
+    u16 ClumpCount;
+    u16 OtherEntryCount;
+
+    u32 CoordCount;
+
+    local int i;
+
+    for (i = 0; i < ClumpCount; i++)
+    {
+        struct
+        {
+            u32 ClumpIndex;
+            u16 BoneMaterialCount;
+            u16 ModelCount;
+            u32 BoneMaterialIndices[BoneMaterialCount];
+            u32 ModelIndices[ModelCount];
+        } Clumps;
+    }
+
+    u32 OtherEntryChunkIndices[OtherEntryCount];
+
+    // This is bones parents: first u32 is parent, second u32 is child (or current bone)
+    struct TCoordParent CoordParents[CoordCount];
+
+    struct { struct TEntry Entry[EntryCount]; } Entries;
+
+    }
+} TNuccAnm;
+
+typedef struct
+{
+    s16 ClumpIndex;
+    u16 CoordIndex;
+} TAnmCoord;
+
+typedef struct
+{
+    struct TAnmCoord Parent;
+    struct TAnmCoord Child;
+} TCoordParent;
+
+typedef struct
+{
+    u16 CurveIndex;
+    u16 CurveFormat;
+    u16 FrameCount;
+    u16 CurveFlags; // Could be just "curve data size"
+} TCurveHeader;
+
+typedef struct
+{
+    struct TAnmCoord Coord;
+
+    u16 EntryFormat;
+    u16 CurveCount;
+
+    struct TCurveHeader CurveHeaders[CurveCount];
+
+    local int i;
+
+    for (i = 0; i < CurveCount; i++)
+    {
+        struct {
+            switch (CurveHeaders[i].CurveFormat)
+            {
+                case 0x05:
+                case 0x08:
+                case 0x15:
+                    struct TVector3 Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x06:
+                    struct TKeyframeVector3 Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x0A:
+                    struct TKeyframeVector4 Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x0B:
+                case 0x16:
+                case 0x18:
+                    f32 Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x0C:
+                    struct TKeyframeFloat Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x0F:
+                    s16 Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    if (CurveHeaders[i].FrameCount % 2)
+                    {
+                        FSkip(2);
+                    }
+                    break;
+                case 0x10:
+                    struct TVector3Short Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    if (CurveHeaders[i].FrameCount % 2)
+                    {
+                        FSkip(2);
+                    }
+                    break;
+                case 0x11:
+                    struct TQuatScaled Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    break;
+                case 0x14:
+                    struct TRgb Curve[CurveHeaders[i].FrameCount] <optimize=false>;
+                    FSkip(CurveHeaders[i].FrameCount % 4);
+                    break;
+            }
+        } Curve;
+    }
+} TEntry <optimize=false>;
+
+typedef struct
+{
+    s16 X;
+    s16 Y;
+    s16 Z;
+    s16 W;
+} TQuatScaled <read=ReadTQuatScaled>;
+
+string ReadTQuatScaled(TQuatScaled& value)
+{
+    local string str;
+    SPrintf(str, "[%.6f, %.6f, %.6f, %.6f]",
+        (float)value.X / 0x4000,
+        (float)value.Y / 0x4000,
+        (float)value.Z / 0x4000,
+        (float)value.W / 0x4000);
+    return str;
+}
+
+typedef struct
+{
+    s16 X;
+    s16 Y;
+    s16 Z;
+} TVector3Short <read=ReadTVector3Short>;
+
+string ReadTVector3Short(TVector3Short& value)
+{
+    local string str;
+    SPrintf(str, "[%.6f, %.6f, %.6f]",
+        (float)value.X / 0x1000,
+        (float)value.Y / 0x1000,
+        (float)value.Z / 0x1000);
+    return str;
+}
+
+typedef struct
+{
+    // 100 = 1 frame
+    s32 Frame;
+    struct TVector3 Value;
+} TKeyframeVector3 <read=ReadTKeyframeVector3>;
+
+typedef struct
+{
+    s32 Frame;
+    struct TVector4 Value;
+} TKeyframeVector4 <read=ReadTKeyframeVector4>;
+
+string ReadTKeyframeVector3(TKeyframeVector3& value)
+{
+    local string str;
+    SPrintf(str, "%d: %s",
+        value.Frame >= 100 ? value.Frame / 100 : value.Frame,
+        TVector3ToString(value.Value));
+    return str;
+}
+
+string ReadTKeyframeVector4(TKeyframeVector4& value)
+{
+    local string str;
+    SPrintf(str, "%d: %s",
+        value.Frame >= 100 ? value.Frame / 100 : value.Frame,
+        TVector4ToString(value.Value));
+    return str;
+}
+
+typedef struct
+{
+    s32 Frame;
+    f32 Value;
+} TKeyframeFloat <read=ReadTKeyframeFloat>;
+
+string ReadTKeyframeFloat(TKeyframeFloat& value)
+{
+    local string str;
+    SPrintf(str, "%d: %.6f",
+        value.Frame >= 100 ? value.Frame / 100 : value.Frame,
+        value.Value);
+    return str;
+}
+
+typedef struct
+{
+    u8 R;
+    u8 G;
+    u8 B;
+} TRgb <read=ReadTRgb>;
+
+string ReadTRgb(TRgb& value)
+{
+    local string str;
+    SPrintf(str, "[R: %d, G: %d, B: %d]", value.R, value.G, value.B);
+    return str;
+}
