@@ -3,7 +3,7 @@
 //
 //      File: nucc.bt
 //   Authors: SutandoTsukai181
-//   Version: 1.2
+//   Version: 1.3
 //   Purpose: Contains structs for parsing nuccChunks inside Xfbin files
 //  Category: 
 // File Mask: 
@@ -12,6 +12,7 @@
 //   1.0 - Initial release
 //   1.1 - Added nuccChunkCoord struct
 //   1.2 - Added nuccChunkClump and nuccChunkModel structs
+//   1.3 - Added nuccChunkModelHit and updated nuccChunkDynamics
 //------------------------------------------------
 
 #include "/../include.h"
@@ -133,48 +134,52 @@ typedef struct
 
 typedef struct
 {
-    u16 Sec1Count;
-    u16 Sec2Count;
+    u16 SpringGroupsCount;
+    u16 CollisionSpheresCount;
 
     u32 ClumpChunkIndex;
 
-    local int i, j, childrenCount = 0;
-    for ( i = 0; i < Sec1Count; i++ )
+    local int i, j, bonesCount = 0;
+    for ( i = 0; i < SpringGroupsCount; i++ )
     {
         struct
         {
-            f32 Bounce;
-            f32 Speed;
-            f32 Gravity;
-            f32 Influence;
-
+            f32 Bounciness;
+            f32 Elasticity;
+            f32 Stiffness;
+            f32 Movement;
             u16 CoordIndex;
-            u16 ChildCount;
-            childrenCount += ChildCount;
-        } Sec1;
+            u16 BonesCount;
+            bonesCount += BonesCount;
+        } SpringGroup;
     }
 
-    for ( i = 0; i < Sec2Count; i++ )
+    for ( i = 0; i < CollisionSpheresCount; i++ )
     {
         struct
         {
-            f32 Values[6];
+            f32 OffsetZ;
+            f32 OffsetY;
+            f32 OffsetX;
+            f32 ScaleZ;
+            f32 ScaleY;
+            f32 ScaleX;
 
             u16 CoordIndex;
-            u16 Count;
+            u16 AttachSpringGroupFlag;
 
             s16 Unk;
             u16 Padding2;
 
-            for ( j = 0; j < Count; j++ )
+            for ( j = 0; j < AttachSpringGroupFlag; j++ )
             {
-                u16 Count2;
-                u16 Values2[Count2];
+                u16 AttachedSpringGroupsCount;
+                u16 SpringGroupIndex[AttachedSpringGroupsCount];
             }
-        } Sec2;
+        } CollisionSphere;
     }
 
-    u16 Something[childrenCount];
+    u16 SpringBonesFlags[bonesCount];
 } TNuccDynamics <optimize=false>;
 
 typedef struct
@@ -321,3 +326,44 @@ typedef struct
         } ModelGroupChunks;
     }
 } TNuccClumpModelGroup;
+
+typedef struct
+{
+    SetBackColor(0xAED6F1);
+
+    u32 MeshCount;
+    u32 FileSize;
+
+    local int i, j;
+    for (i = 0; i < MeshCount; i++)
+    {
+        struct VertexSection
+        {
+            u32 VertexSectionSize;
+            u32 FootEffectColor;
+
+            if (ReadInt64() == 0) 
+                {
+                    FSkip(8);
+                }
+                
+            struct Vertices
+            {
+                for (j = 0; j < VertexSectionSize * 0x3; j++)
+                {
+                    struct Vertex
+                    {
+                        f32 x;
+                        f32 y;
+                        f32 z;
+                    } vertex;
+                }
+
+            } vertices;
+            
+        } Mesh;
+    
+    }
+                       
+} TNuccModelHit;
+
