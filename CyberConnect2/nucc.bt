@@ -329,49 +329,41 @@ typedef struct
 
 typedef struct
 {
-    struct Header
-    {
-       u32 MeshCount;
-       u32 FileSize;
+    SetBackColor(0xAED6F1);
 
-    } HitHeader <bgcolor=0xc01b7b>;
-    
-    
+    u32 MeshCount;
+    u32 FileSize;
+
     local int i, j;
-    for (i = 0; i < HitHeader.MeshCount; i++)
+    for (i = 0; i < MeshCount; i++)
     {
         struct VertexSection
         {
-            struct MeshHeader
-            {
-                u32 VertexSectionSize;
-                u16 FootEffect1;
-                u16 FootEffect2;
+            u32 VertexSectionSize;
+            u32 FootEffectColor;
 
-                if (ReadInt64() == 0) 
+            if (ReadInt64() == 0) 
                 {
                     FSkip(8);
                 }
-                else 
+                
+            struct Vertices
+            {
+                for (j = 0; j < VertexSectionSize * 0x3; j++)
                 {
-                    FSkip(0);
+                    struct Vertex
+                    {
+                        f32 x;
+                        f32 y;
+                        f32 z;
+                    } vertex;
                 }
 
-            } meshHeader;
-
-            for (j = 0; j < meshHeader.VertexSectionSize * 0x3; j++)
-            {
-                struct Vertex
-                {
-                    f32 x;
-                    f32 y;
-                    f32 z;
-                } vertex <bgcolor=0xFFDF35>;
-            }
-
-
-        } Mesh <bgcolor=0xFFCF36>;
+            } vertices;
+            
+        } Mesh;
     
     }
                        
 } TNuccModelHit;
+
